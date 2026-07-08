@@ -8,8 +8,9 @@ Telegram bot that translates any message, in any language, into English — buil
 |---|---|
 | `bot.py` | Main bot logic |
 | `requirements.txt` | Python dependencies |
-| `Procfile` | Tells Railway how to start the bot |
-| `runtime.txt` | Pins the Python version |
+| `start.sh` | Start script Railway's Railpack builder looks for |
+| `railway.json` | Explicit build/start config for Railway |
+| `Procfile` | Backup start config (used by Heroku-style platforms) |
 | `.gitignore` | Keeps secrets/junk out of git |
 
 ## Step 1 — Create the bot in Telegram
@@ -41,7 +42,7 @@ git push -u origin main
 3. Choose your `btranslate2engbot` repo.
 4. Go to the **Variables** tab and add:
    - `BOT_TOKEN` = the token from BotFather (Step 1)
-5. Railway auto-detects the `Procfile` and runs the bot as a worker.
+5. Railway auto-detects `railway.json` and `start.sh` and runs `python bot.py` as the start command.
 6. Check the **Deployments → Logs** tab — you should see:
    ```
    Bot started. Polling for messages...
