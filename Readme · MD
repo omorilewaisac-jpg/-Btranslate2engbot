@@ -1,0 +1,56 @@
+# Btranslate2engbot
+
+Telegram bot that translates any message, in any language, into English — built with `python-telegram-bot` and `deep-translator`.
+
+## Files
+
+| File | Purpose |
+|---|---|
+| `bot.py` | Main bot logic |
+| `requirements.txt` | Python dependencies |
+| `Procfile` | Tells Railway how to start the bot |
+| `runtime.txt` | Pins the Python version |
+| `.gitignore` | Keeps secrets/junk out of git |
+
+## Step 1 — Create the bot in Telegram
+
+1. Open Telegram, search **@BotFather**.
+2. Send `/newbot`.
+3. Choose a display name (any name).
+4. Choose the username: `Btranslate2engbot`.
+5. Copy the **API token** BotFather gives you — you'll need it in Step 3.
+
+## Step 2 — Push the code to GitHub
+
+```bash
+cd btranslate2engbot_v2
+git init
+git add .
+git commit -m "Initial commit: translator bot"
+git branch -M main
+git remote add origin https://github.com/<your-username>/btranslate2engbot.git
+git push -u origin main
+```
+
+(Create an empty repo first at github.com/new — don't add a README there, so it doesn't conflict.)
+
+## Step 3 — Deploy on Railway
+
+1. Go to [railway.app](https://railway.app) → log in with GitHub.
+2. Click **New Project → Deploy from GitHub repo**.
+3. Choose your `btranslate2engbot` repo.
+4. Go to the **Variables** tab and add:
+   - `BOT_TOKEN` = the token from BotFather (Step 1)
+5. Railway auto-detects the `Procfile` and runs the bot as a worker.
+6. Check the **Deployments → Logs** tab — you should see:
+   ```
+   Bot started. Polling for messages...
+   ```
+7. Open Telegram, message `@Btranslate2engbot`, send any text — you should get an English translation back.
+
+## Notes
+
+- Uses polling (`run_polling`) — no public URL/webhook needed, works well on Railway's always-on worker.
+- Free Google Translate via `deep-translator` is fine for personal projects; for heavy traffic consider the paid Google Cloud Translation API or DeepL API.
+- Never commit your `BOT_TOKEN` to GitHub — it's loaded from Railway's environment variable, not hardcoded in the code.
+- If you ever need to update the bot, just push new commits to GitHub — Railway auto-redeploys.
