@@ -1,0 +1,128 @@
+import logging
+import os
+
+from deep_translator import GoogleTranslator
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
+
+# ---------------------------------------------------------
+# Logging setup
+# ---------------------------------------------------------
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
+
+# ---------------------------------------------------------
+# Load bot token from environment variable (set in Railway)
+# ---------------------------------------------------------
+BOT_TOKEN = os.environ.get("BOT_TOKEN")
+
+if not BOT_TOKEN:
+    raise RuntimeError(
+        "BOT_TOKEN environment variable is not set. "
+        "Go to Railway -> your project -> Variables -> add BOT_TOKEN."
+    )
+
+MAX_MESSAGE_LENGTH = 4000  # Telegram limit is 4096, keep margin
+
+
+# ---------------------------------------------------------
+# Command: /start
+# ---------------------------------------------------------
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "👋 Hi! I'm your translation bot.\n\n"
+        "Send me any text in any language, and I'll translate it into English.\n"
+        "No commands needed — just type or forward a message.\n\n"
+        "Type /help to see this again."
+    )
+
+
+# ---------------------------------------------------------
+# Command: /help
+# ---------------------------------------------------------
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "ℹ️ How to use this bot:\n\n"
+        "1. Send any text message, in any language.\n"
+        "2. I'll detect the language automatically.\n"
+        "3. I'll reply with the English translation.\n\n"
+        "Commands:\n"
+        "/start - welcome message\n"
+        "/help - show this help message"
+    )
+
+
+# ---------------------------------------------------------
+# Core handler: translate any text message to English
+# ---------------------------------------------------------
+async def translate_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+
+    if not text or not text.strip():
+        return
+
+    # Telegram messages can be long; deep_translator has its own limits too,
+    # so we translate in chunks if needed.
+    chunks = [text[i:i + MAX_MESSAGE_LENGTH] for i in range(0, len(text), MAX_MESSAGE_LENGTH)]
+
+    try:
+        translated_chunks = []
+        for chunk in chunks:
+            translated = GoogleTranslator(source="auto", target="en").translate(chunk)
+            translated_chunks.append(translated or "")
+
+        translated_text = " ".join(translated_chunks).strip()
+
+        if not translated_text:
+            await update.message.reply_text(
+                "⚠️ I couldn't get a translation for that. Please try again."
+            )
+            return
+
+        if translated_text.lower() == text.strip().lower():
+            await update.message.reply_text(
+                f"🔤 This already looks like English:\n\n{translated_text}"
+            )
+        else:
+            await update.message.reply_text(f"🇬🇧 English translation:\n\n{translated_text}")
+
+    except Exception as e:
+        logger.error(f"Translation error: {e}")
+        await update.message.reply_text(
+            "⚠️ Sorry, something went wrong while translating. Please try again in a moment."
+        )
+
+
+# ---------------------------------------------------------
+# Global error handler (catches anything unhandled)
+# ---------------------------------------------------------
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+    logger.error(f"Update {update} caused error: {context.error}")
+
+
+# ---------------------------------------------------------
+# Main entry point
+# ---------------------------------------------------------
+def main():
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, translate_message))
+    app.add_error_handler(error_handler)
+
+    logger.info("Bot started. Polling for messages...")
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+
+if __name__ == "__main__":
+    main()
